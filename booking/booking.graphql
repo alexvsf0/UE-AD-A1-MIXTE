@@ -1,0 +1,22 @@
+type Query {
+   booking_with_id(_id: String!): Booking
+}
+
+type Mutation {
+    delete_with_id(_id: String!): DeleteResult!
+}
+
+type Booking {
+    userid: String!
+    dates: [Date!]
+}
+
+type Date {
+    date : String!
+    movies : [String!]
+}
+
+type DeleteResult {
+    success: Boolean!
+    message: String!
+}
