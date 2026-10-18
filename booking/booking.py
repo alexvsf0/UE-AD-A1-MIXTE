@@ -15,6 +15,7 @@ booking = ObjectType("Booking")
 date = ObjectType("Date")
 query.set_field('booking_with_id', r.booking_with_id)
 mutation.set_field('delete_with_id', r.delete_with_id)
+mutation.set_field('add_booking', r.add_booking)
 schema = make_executable_schema(type_defs, booking, date, query, mutation)
 
 # root message
