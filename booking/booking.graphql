@@ -3,21 +3,26 @@ type Query {
 }
 
 type Mutation {
-    delete_with_id(_id: String!): DeleteResult!
-    add_booking(userid: String!, date: String!, movieid: String!): DeleteResult!
+   delete_with_id(_id: String!): DeleteResult!
+   add_booking(userid: String!, date: String!, movieid: String!): DeleteResult!
 }
 
 type Booking {
-    userid: String!
-    dates: [Date!]
+   userid: String!
+   dates: [Date!]
 }
 
 type Date {
-    date : String!
-    movies : [String!]
+   date : String!
+   movies : [Movie!]
+}
+
+type Movie {
+   id: String!
+   title: String!
 }
 
 type DeleteResult {
-    success: Boolean!
-    message: String!
+   success: Boolean!
+   message: String!
 }

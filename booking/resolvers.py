@@ -2,15 +2,18 @@ import json
 import requests # soucis avec requests alors que requeststs est bien dans les requirements.
 
 SCHEDULE_URL = "http://127.0.0.1:3202"
+MOVIE_SERVICE_URL = "http://127.0.0.1:3200"
 
 # RESOLVEUR de la requête
 def booking_with_id(_,info,_id):
-   with open('{}/data/bookings.json'.format("."), "r") as file:
-      bookings = json.load(file)
-      for booking in bookings['bookings']:
-         if booking['userid'] == _id:
+   with open("./data/bookings.json", "r") as file:
+      bookings = json.load(file)["bookings"]
+   
+      for booking in bookings:
+         if str(booking["userid"]) == str(_id):
             return booking
-      return None
+   
+      raise Exception("User ID not found")
    
 def delete_with_id(_, info, _id):
    with open('{}/data/bookings.json'.format("."), "r") as file:
@@ -63,3 +66,18 @@ def add_booking(_, info, userid, date, movieid):
         json.dump(data, file, indent=2)
 
     return {"success": True, "message": "Réservation ajoutée pour {} le {}.".format(userid, date)}
+ 
+# Liaison avec les données stockées par le service movie.
+def resolve_date_movies(date, info):
+   movies_detail = []
+   for movie_id in date["movies"]:
+      try:
+         response = requests.get(f"{MOVIE_SERVICE_URL}/movies/{movie_id}", timeout=5)
+      except requests.exceptions.RequestException:
+         raise Exception("movie service unavailable")
+
+      if response.status_code != 200:
+         raise Exception(f"invalid movie: {movie_id}")
+
+      movies_detail.append(response.json())
+   return movies_detail
