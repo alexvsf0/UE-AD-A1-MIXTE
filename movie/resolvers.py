@@ -104,4 +104,19 @@ def delete_movie(_, info, _id):
         json.dump(actors_data, file, indent=2)
 
     return {"success": True, "message": "Le film {} a été supprimé.".format(_id)}
-    
+
+def delete_actor(_, info, _id):
+    #Supprime un acteur
+    actors_path = "./data/actors.json"
+    with open(actors_path, "r") as file:
+        actors_data = json.load(file)
+    previous=len(actors_data)
+    #On garde tous les acteurs sauf celui à supprimer
+    actors_data=[actor for actor in actors_data if actor["id"] != _id]
+    #Si ça n'a pas retiré d'acteur, c'est que celui-ci n'était pas dans la db
+    if len(actors_data)==previous:
+            return {"success": False, "message": "L'acteur {} n'a pas été trouvé.".format(_id)}
+    #On écrase le fichier avec la liste des acteurs sans celui à supprimer
+    with open(actors_path, "w") as file:
+        json.dump(actors_data, file, indent=2)
+    return {"success": True, "message": "L'acteur {} a été supprimé.".format(_id)}

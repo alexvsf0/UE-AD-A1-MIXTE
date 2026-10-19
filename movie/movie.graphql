@@ -7,6 +7,7 @@ type Mutation {
     delete_movie(_id: String!) : DeleteResult
     add_movie(_id : String!, title: String!, director: String!, rating: Float!, actors: [Actor]) : DeleteResult
     add_actors(id : String!, firstname: String!, lastname: String!, birthyear: Int!, films: [String!]) : DeleteResult
+    delete_actor(_id: String!) : DeleteResult
 }
 
 type Movie {
