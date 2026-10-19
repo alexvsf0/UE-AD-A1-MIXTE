@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, request, jsonify, make_response
 import requests
 import json
@@ -9,7 +10,7 @@ app = Flask(__name__)
 PORT = 3203
 HOST = '0.0.0.0'
 
-app.config["JWT_SECRET_KEY"] = "super-secret"
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super-secret")
 jwt = JWTManager(app)
 app.config["JWT_TOKEN_LOCATION"] = ["headers"]
 app.config["JWT_COOKIE_SECURE"] = False
@@ -33,7 +34,7 @@ def login():
    return(jsonify("fail"))
 
 def write(users):
-    with open("{}/databases/users.json".format("."), "w") as f:
+    with open("{}/data/users.json".format("."), "w") as f:
         full = {}
         full["users"] = users
         json.dump(full, f)

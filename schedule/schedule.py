@@ -1,3 +1,4 @@
+import os
 from flask import Flask, jsonify, make_response
 import json
 import sys
@@ -8,14 +9,14 @@ from flask_jwt_extended import create_access_token, get_jwt, JWTManager, jwt_req
 
 app = Flask(__name__)
 
-app.config["JWT_SECRET_KEY"] = "super-secret"
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super-secret")
 jwt = JWTManager(app)
 app.config["JWT_TOKEN_LOCATION"] = ["headers"]
 app.config["JWT_COOKIE_SECURE"] = False
 
 PORT = 3202
 HOST = '0.0.0.0'
-client = MongoClient("mongodb://root:example@localhost:27017/")
+client = MongoClient(os.getenv("MONGO_URL", "mongodb://root:example@localhost:27017/"))
 
 with open('{}/data/times.json'.format("."), "r") as jsf:
     schedule = json.load(jsf)["schedule"]
