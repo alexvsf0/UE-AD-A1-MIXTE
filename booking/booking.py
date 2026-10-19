@@ -17,6 +17,8 @@ query.set_field('booking_with_id', r.booking_with_id)
 date.set_field("movies", r.resolve_date_movies)
 mutation.set_field('delete_with_id', r.delete_with_id)
 mutation.set_field('add_booking', r.add_booking)
+mutation.set_field('delete_date_with_id', r.delete_date_with_id)
+mutation.set_field('delete_movie_with_id_and_date', r.delete_movie_with_id_and_date)
 schema = make_executable_schema(type_defs, booking, date, query, mutation)
 
 # root message
