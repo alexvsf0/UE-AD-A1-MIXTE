@@ -33,6 +33,7 @@ def home():
 
 @app.route("/json", methods=["GET"])
 def get_json():
+    #Renvoie la liste des films
     mylist = list(collection.find({},  {"_id": 0}))
     res = make_response(jsonify(mylist), 200)
     return res
@@ -59,10 +60,24 @@ def get_dates_by_movieid(movieid):
         return res
     return make_response(jsonify({"error": "Movie not found"}), 404)
 
+@app.route("/movies/<date>/<movieid>", methods=["POST"])
+@jwt_required()
+def create_movie(date, movieid):
+    #Vérifie si le film existe déjà à cette date, sinon l'ajoute, réservé aux admins
+    if not get_jwt().get("admin", False):
+           return make_response(jsonify({"error" : "forbidden"}), 403)
+    movie=collection.find_one({"date":date,"movies":movieid})
+    if movie is not None :
+        return make_response(jsonify({"error": "Movie already exist"}), 409)
+    collection.update_one({"date": date}, {"$addToSet": {"movies": movieid}},upsert=True)
+    res = make_response(jsonify({"message": "done"}), 201)
+    return res
+
 
 @app.route("/movies/<movieid>", methods=["DELETE"])
 @jwt_required()
 def del_movie_by_id(movieid):
+    #Supprime un film de toutes les dates où il est proposé, réservé aux admins
     if not get_jwt().get("admin", False):
        return make_response(jsonify({"error" : "forbidden"}), 403)
     mylist = list(collection.find({"movies": movieid}))
@@ -74,10 +89,22 @@ def del_movie_by_id(movieid):
     )
     return make_response(jsonify({"message": "done"}), 200)
     
-    
+@app.route("/movies/<date>/<movieid>", methods=["DELETE"])
+@jwt_required()
+def del_movie_at_one_date(date, movieid):
+    #Supprime un film de à une date fixée, réservé aux admins
+    if not get_jwt().get("admin", False):
+       return make_response(jsonify({"error" : "forbidden"}), 403)
+    movie=collection.find_one({"date": date, "movies": movieid})
+    if movie is None:
+            return make_response(jsonify({"error": "Movie ID not found at this date"}), 404)
+    collection.update_one({"date": date}, {"$pull": {"movies": movieid}})
+    return make_response(jsonify({"message": "done"}), 200)
+
 @app.route("/dates/<date>", methods=["DELETE"])
 @jwt_required()
 def del_movies_by_date(date):
+    #Supprime tous les films à une date, réservé aux admins
     if not get_jwt().get("admin", False):
        return make_response(jsonify({"error" : "forbidden"}), 403)
     mylist = collection.find_one({"date": date})
