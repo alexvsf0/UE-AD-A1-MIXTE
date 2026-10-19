@@ -1,8 +1,9 @@
+import os
 import json
 import requests # soucis avec requests alors que requeststs est bien dans les requirements.
 
-SCHEDULE_URL = "http://127.0.0.1:3202"
-MOVIE_GRAPHQL_URL = "http://127.0.0.1:3001/graphql"
+SCHEDULE_URL = os.getenv("SCHEDULE_URL", "http://127.0.0.1:3202")
+MOVIE_GRAPHQL_URL = os.getenv("MOVIE_GRAPHQL_URL", "http://127.0.0.1:3001/graphql")
 MOVIE_QUERY = """
 query ($id: String!) {
     movie_with_id(_id: $id) {

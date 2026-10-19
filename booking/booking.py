@@ -24,7 +24,7 @@ schema = make_executable_schema(type_defs, booking, date, query, mutation)
 # root message
 @app.route("/", methods=['GET'])
 def home():
-    return make_response("<h1 style='color:blue'>Welcome to the Movie service!</h1>",200)
+    return make_response("<h1 style='color:blue'>Welcome to the Booking service!</h1>",200)
 
 
 # graphQL entry points
