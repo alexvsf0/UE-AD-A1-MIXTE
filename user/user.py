@@ -19,7 +19,7 @@ with open('{}/data/users.json'.format("."), "r") as jsf:
 
 @app.route("/login", methods=['POST'])
 def login():
-   print(request.args)
+   #On récupère le nom de l'utilisateur et on récupère son compte
    if request.args:
       req = request.args
       name = req["name"]
@@ -27,8 +27,7 @@ def login():
       if not user:
          return (make_response("error : user not found", 404))
       user=user[0]
-      print(user)
-      additionnal_claim={"admin":user["admin"]}
+      additionnal_claim={"admin":user["admin"]} #On va créer un token avec le statut admin de l'utilisateur pour les autres services qui n'ont pas accès à cette database
       token = create_access_token(identity=name, additional_claims=additionnal_claim)
       return jsonify(access_token=token)
    return(jsonify("fail"))
@@ -58,6 +57,7 @@ def home():
 @app.route("/json", methods=["GET"])
 @jwt_required()
 def get_json():
+    #Renvoie la liste des utilisateurs avec toutes les infos, réservé aux admins
     current_user = get_jwt_identity()
     if not is_admin(current_user):
        return make_response(jsonify({"error" : "forbidden"}), 403)
@@ -67,6 +67,7 @@ def get_json():
 @app.route("/user/<user_id>", methods=["GET"])
 @jwt_required()
 def get_user_id(user_id):
+    #Renvoie les infos d'un utilisateur, réservé à l'utilisateur ou aux admins
     current_user = get_jwt_identity()
     if not (is_admin(current_user) or user_id==get_id(current_user)):
        return(make_response(jsonify({"error" : "forbidden"}), 403))
@@ -78,6 +79,7 @@ def get_user_id(user_id):
 @app.route("/user/admin", methods=["GET"])
 @jwt_required()
 def get_admin():
+    #Renvoie la liste des admins, réservé aux admins
     current_user = get_jwt_identity()
     if not is_admin(current_user):
        return(make_response(jsonify({"error" : "forbidden"}), 403))
@@ -87,8 +89,9 @@ def get_admin():
     return (make_response(jsonify({"error" : "Not found"}), 404))
 
 @app.route("/user/<user_id>", methods=["POST"])
-@jwt_required()
+@jwt_required(optional=True)
 def create_user(user_id):
+    #Créer un compte, nécessite d'être admin pour créer un compte administrateur
     current_user = get_jwt_identity()
     for user in users :
        if user_id==str(user["id"]):
@@ -103,6 +106,7 @@ def create_user(user_id):
 @app.route("/user/<user_id>", methods=["PUT"])
 @jwt_required()
 def modify_user(user_id):
+    #Modifie un compte, réservé à l'utilisateur ou aux admins
     current_user = get_jwt_identity()
     user_exist=False
     req = request.get_json()
@@ -121,6 +125,7 @@ def modify_user(user_id):
 @app.route("/user/<user_id>", methods=["DELETE"])
 @jwt_required()
 def delete_user(user_id):
+    #Supprime un compte, réservé à l'utilisateur ou aux admins
     current_user = get_jwt_identity()
     if not (is_admin(current_user) or user_id==current_user):
        return(make_response(jsonify({"error" : "forbidden"}), 403))
