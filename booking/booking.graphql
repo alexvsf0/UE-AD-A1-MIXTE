@@ -5,6 +5,8 @@ type Query {
 type Mutation {
    delete_with_id(_id: String!): DeleteResult!
    add_booking(userid: String!, date: String!, movieid: String!): DeleteResult!
+   delete_date_with_id(_id: String!, date: String!): DeleteResult!
+   delete_movie_with_id_and_date(_id: String!, date: String!, movie: String!): DeleteResult!
 }
 
 type Booking {

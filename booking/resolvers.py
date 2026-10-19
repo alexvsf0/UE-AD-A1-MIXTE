@@ -28,6 +28,48 @@ def delete_with_id(_, info, _id):
    with open('{}/data/bookings.json'.format("."), "w") as file:
       json.dump(bookings, file, indent=2)
    return {"success": True, "message": "Le booking de {} a été supprimé.".format(_id)}
+
+def delete_date_with_id(_, info, _id, date):
+   with open('{}/data/bookings.json'.format("."), "r") as file:
+      bookings = json.load(file)
+   indice_user=-1
+   for i in range(len(bookings["bookings"])) :
+      if bookings["bookings"][i]["userid"] == _id :
+         indice_user=i
+         before = len(bookings["bookings"][i]["dates"])
+         bookings["bookings"][i]["dates"] = [b for b in bookings["bookings"][i]["dates"] if b["date"] != date]
+   if indice_user==-1:
+      return {"success": False, "message": "Aucun booking trouvé pour {}.".format(_id)}
+   if len(bookings["bookings"][indice_user]["dates"]) == before:
+      return {"success": False, "message": "Aucun booking à la date du {} trouvé pour {}.".format(date,_id)}
+
+   with open('{}/data/bookings.json'.format("."), "w") as file:
+      json.dump(bookings, file, indent=2)
+   return {"success": True, "message": "Le booking de {} a la date du {} a été supprimé.".format(_id,date)}
+
+def delete_movie_with_id_and_date(_, info, _id, date, movie):
+   with open('{}/data/bookings.json'.format("."), "r") as file:
+      bookings = json.load(file)
+   indice_user=-1
+   indice_date=-1
+   for i in range(len(bookings["bookings"])) :
+      if bookings["bookings"][i]["userid"] == _id :
+         indice_user=i
+         for j in range(len(bookings["bookings"][i]["dates"])) :
+               if bookings["bookings"][i]["dates"][j]["date"] == date :
+                  indice_date=j
+                  before = len(bookings["bookings"][i]["dates"][j]["movies"])
+                  bookings["bookings"][i]["dates"][j]["movies"] = [b for b in bookings["bookings"][i]["dates"][j]["movies"] if b != movie]
+   if indice_user==-1:
+      return {"success": False, "message": "Aucun booking trouvé pour {}.".format(_id)}
+   if indice_date==-1:
+      return {"success": False, "message": "Aucun booking à la date du {} trouvé pour {}.".format(date,_id)}
+   if len(bookings["bookings"][indice_user]["dates"][indice_date]["movies"]) == before:
+      return {"success": False, "message": "Aucun booking du film {} à la date du {} trouvé pour {}.".format(movie, date,_id)}
+
+   with open('{}/data/bookings.json'.format("."), "w") as file:
+      json.dump(bookings, file, indent=2)
+   return {"success": True, "message": "Le booking de {} a la date du {} pour le film {} a été supprimé.".format(_id,date,movie)}
    
 # RESOLVER du type Date dans Booking
 def resolve_bookings_date(booking,info):
