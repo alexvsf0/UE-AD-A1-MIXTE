@@ -9,7 +9,8 @@ import resolvers as r
 PORT = 3001
 HOST = '0.0.0.0'
 app = Flask(__name__)
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super-secret")
+app.config["JWT_SECRET_KEY"] = os.getenv(
+    "JWT_SECRET_KEY", "super-secret-dev-key-change-me-in-production")
 jwt = JWTManager(app)
 app.config["JWT_TOKEN_LOCATION"] = ["headers"]
 

@@ -19,7 +19,8 @@ BOOKING_FIELDS = """
     }
 """
 
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super-secret")
+app.config["JWT_SECRET_KEY"] = os.getenv(
+    "JWT_SECRET_KEY", "super-secret-dev-key-change-me-in-production")
 jwt = JWTManager(app)
 app.config["JWT_TOKEN_LOCATION"] = ["headers"]
 app.config["JWT_COOKIE_SECURE"] = False

@@ -6,7 +6,7 @@ services:
     environment:
       SCHEDULE_URL: http://schedule:3202
       BOOKING_GRAPHQL_URL: http://booking:3201/graphql
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-super-secret}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-super-secret-dev-key-change-me-in-production}
     volumes:
       - movie-data:/app/data
 
@@ -18,7 +18,7 @@ services:
       SCHEDULE_URL: http://schedule:3202
       MOVIE_GRAPHQL_URL: http://movie:3001/graphql
       USER_URL: http://user:3203
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-super-secret}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-super-secret-dev-key-change-me-in-production}
     volumes:
       - booking-data:/app/data
     depends_on:
@@ -32,7 +32,7 @@ services:
     environment:
       MONGO_URL: mongodb://root:example@mongo:27017/
       MOVIE_GRAPHQL_URL: http://movie:3001/graphql
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-super-secret}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-super-secret-dev-key-change-me-in-production}
     depends_on:
       mongo:
         condition: service_healthy
@@ -43,9 +43,29 @@ services:
       - "3203:3203"
     environment:
       BOOKING_GRAPHQL_URL: http://booking:3201/graphql
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-super-secret}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-super-secret-dev-key-change-me-in-production}
     volumes:
       - user-data:/app/data
+
+  # Joue un scénario sur toutes les routes au démarrage puis s'arrête.
+  # Relancer : docker compose run --rm demo   (ajouter -v pour les réponses)
+  demo:
+    image: python:3.13-slim
+    volumes:
+      - ./demo:/demo:ro
+    command: ["python", "-u", "/demo/demo.py"]
+    environment:
+      USER_URL: http://user:3203
+      SCHEDULE_URL: http://schedule:3202
+      MOVIE_GRAPHQL_URL: http://movie:3001/graphql
+      BOOKING_GRAPHQL_URL: http://booking:3201/graphql
+      FORCE_COLOR: "1"
+    depends_on:
+      - movie
+      - booking
+      - schedule
+      - user
+    restart: "no"
 
   mongo:
     image: mongo:8
