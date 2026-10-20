@@ -50,7 +50,7 @@ services:
   # Joue un scénario sur toutes les routes au démarrage puis s'arrête.
   # Relancer : docker compose run --rm demo   (ajouter -v pour les réponses)
   demo:
-    image: python:3.13-slim
+    image: python:3.13.16-slim-trixie@sha256:70729b46c69b4f1e97c4822c1af3df53a1476cf5ddc6c087c0c10bc3a5678c2f
     volumes:
       - ./demo:/demo:ro
     command: ["python", "-u", "/demo/demo.py"]
@@ -68,7 +68,7 @@ services:
     restart: "no"
 
   mongo:
-    image: mongo:8
+    image: mongo:8.3.13@sha256:0e900a3364da37b76d642b73b0bba56bd4c6c509ab470cf700436fd866bee3ff
     command: ["mongod", "--quiet"]
     restart: always
     environment:
@@ -85,7 +85,7 @@ services:
       start_interval: 2s
 
   mongo-express:
-    image: mongo-express
+    image: mongo-express:1.0.2-18@sha256:1b23d7976f0210dbec74045c209e52fbb26d29b2e873d6c6fa3d3f0ae32c2a64
     restart: always
     ports:
       - "${MONGO_EXPRESS_PORT:-8081}:8081"
