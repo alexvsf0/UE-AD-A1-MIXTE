@@ -3,6 +3,10 @@ services:
     build: ./movie/
     ports:
       - "3001:3001"
+    environment:
+      SCHEDULE_URL: http://schedule:3202
+      BOOKING_GRAPHQL_URL: http://booking:3201/graphql
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-super-secret}
     volumes:
       - movie-data:/app/data
 
@@ -13,6 +17,8 @@ services:
     environment:
       SCHEDULE_URL: http://schedule:3202
       MOVIE_GRAPHQL_URL: http://movie:3001/graphql
+      USER_URL: http://user:3203
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-super-secret}
     volumes:
       - booking-data:/app/data
     depends_on:
@@ -25,6 +31,7 @@ services:
       - "3202:3202"
     environment:
       MONGO_URL: mongodb://root:example@mongo:27017/
+      MOVIE_GRAPHQL_URL: http://movie:3001/graphql
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-super-secret}
     depends_on:
       mongo:
@@ -35,6 +42,7 @@ services:
     ports:
       - "3203:3203"
     environment:
+      BOOKING_GRAPHQL_URL: http://booking:3201/graphql
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-super-secret}
     volumes:
       - user-data:/app/data
