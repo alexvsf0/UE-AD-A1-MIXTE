@@ -10,17 +10,18 @@ def movie_with_id(_, info, _id):
 
 
 def update_rate(_, info, _id, _rate):
-    newmovies = {}
-    newmovie = {}
+    newmovie = None
     with open('{}/data/movies.json'.format("."), "r") as rfile:
         movies = json.load(rfile)
         for movie in movies['movies']:
             if movie['id'] == _id:
                 movie['rating'] = _rate
                 newmovie = movie
-                newmovies = movies
+    # On n'écrit que si le film existe, sinon on écraserait le fichier
+    if newmovie is None:
+        return None
     with open('{}/data/movies.json'.format("."), "w") as wfile:
-        json.dump(newmovies, wfile)
+        json.dump(movies, wfile, indent=2)
     return newmovie
 
 
@@ -37,27 +38,26 @@ def add_movie(_, info, _id, title, director, rating):
     with open(path, "r") as file:
         data = json.load(file)
 
-        # On vérifie que le film n'existe pas déjà
-        movies = next(
-            (movie for movie in data["movies"] if data["id"] == _id), None)
-        if movies is None:
-            movie = {"director": director, "id": _id,
-                     "rating": rating, "title": title}
-            movies["movies"].append(movie)
-        else:
-            return {"success": False,
-                    "message": f"Le film d'identifiant {_id} existe déjà."}
-        # Sauvegarde uniquement après toutes les vérifications
-        with open(path, "w") as file:
-            json.dump(movies, file, indent=2)
+    # On vérifie que le film n'existe pas déjà
+    if any(movie["id"] == _id for movie in data["movies"]):
+        return {"success": False,
+                "message": f"Le film d'identifiant {_id} existe déjà."}
 
-        return {"success": True,
-                "message": f"Le film {title} a été ajouté avec succès."}
+    data["movies"].append({"director": director, "id": _id,
+                           "rating": rating, "title": title})
+    # Sauvegarde uniquement après toutes les vérifications
+    with open(path, "w") as file:
+        json.dump(data, file, indent=2)
+
+    return {"success": True,
+            "message": f"Le film {title} a été ajouté avec succès."}
 
 
 def add_actors(_, info, id, firstname, lastname, birthyear, films):
     movies_path = "./data/movies.json"
     actors_path = "./data/actors.json"
+    # films est optionnel dans le schéma
+    films = films or []
 
     # 1. Vérifier que tous les films existent dans movies.json
     with open(movies_path, "r") as file:
@@ -129,11 +129,12 @@ def delete_actor(_, info, _id):
     actors_path = "./data/actors.json"
     with open(actors_path, "r") as file:
         actors_data = json.load(file)
-    previous = len(actors_data)
+    previous = len(actors_data["actors"])
     # On garde tous les acteurs sauf celui à supprimer
-    actors_data = [actor for actor in actors_data if actor["id"] != _id]
+    actors_data["actors"] = [
+        actor for actor in actors_data["actors"] if actor["id"] != _id]
     # Si ça n'a pas retiré d'acteur, c'est que celui-ci n'était pas dans la db
-    if len(actors_data) == previous:
+    if len(actors_data["actors"]) == previous:
         return {"success": False,
                 "message": "L'acteur {} n'a pas été trouvé.".format(_id)}
     # On écrase le fichier avec la liste des acteurs sans celui à supprimer
