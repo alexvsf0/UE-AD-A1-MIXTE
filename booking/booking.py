@@ -1,4 +1,6 @@
-from ariadne import graphql_sync, make_executable_schema, load_schema_from_path, ObjectType, QueryType, MutationType
+from ariadne import (graphql_sync, make_executable_schema,
+                     load_schema_from_path, ObjectType, QueryType,
+                     MutationType)
 from flask import Flask, request, jsonify, make_response
 
 import resolvers as r
@@ -18,13 +20,16 @@ date.set_field("movies", r.resolve_date_movies)
 mutation.set_field('delete_with_id', r.delete_with_id)
 mutation.set_field('add_booking', r.add_booking)
 mutation.set_field('delete_date_with_id', r.delete_date_with_id)
-mutation.set_field('delete_movie_with_id_and_date', r.delete_movie_with_id_and_date)
+mutation.set_field('delete_movie_with_id_and_date',
+                   r.delete_movie_with_id_and_date)
 schema = make_executable_schema(type_defs, booking, date, query, mutation)
+
 
 # root message
 @app.route("/", methods=['GET'])
 def home():
-    return make_response("<h1 style='color:blue'>Welcome to the Booking service!</h1>",200)
+    return make_response(
+        "<h1 style='color:blue'>Welcome to the Booking service!</h1>", 200)
 
 
 # graphQL entry points
@@ -32,14 +37,15 @@ def home():
 def graphql_server():
     data = request.get_json()
     success, result = graphql_sync(
-                        schema,
-                        data,
-                        context_value=None,
-                        debug=app.debug
-                    )
+        schema,
+        data,
+        context_value=None,
+        debug=app.debug
+    )
     status_code = 200 if success else 400
     return jsonify(result), status_code
 
+
 if __name__ == "__main__":
-    print("Server running in port %s"%(PORT))
+    print("Server running in port %s" % (PORT))
     app.run(host=HOST, port=PORT)
