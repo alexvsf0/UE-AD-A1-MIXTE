@@ -1,6 +1,7 @@
 import os
 from flask import Flask, jsonify, make_response
 import json
+import requests
 from pymongo import MongoClient
 from flask_jwt_extended import get_jwt, JWTManager, jwt_required
 
@@ -12,6 +13,8 @@ app.config["JWT_TOKEN_LOCATION"] = ["headers"]
 app.config["JWT_COOKIE_SECURE"] = False
 
 PORT = 3202
+MOVIE_GRAPHQL_URL = os.getenv(
+    "MOVIE_GRAPHQL_URL", "http://127.0.0.1:3001/graphql")
 HOST = '0.0.0.0'
 client = MongoClient(
     os.getenv("MONGO_URL", "mongodb://root:example@localhost:27017/"))
@@ -24,6 +27,22 @@ collection = db["schedule"]
 if collection.count_documents({}) == 0:
     print("Creating collection")
     collection.insert_many(schedule)
+
+
+def movie_exists(movieid):
+    # Demande au service movie si le film existe (None si injoignable)
+    try:
+        response = requests.post(
+            MOVIE_GRAPHQL_URL,
+            json={"query": "query ($id: String!) "
+                  "{ movie_with_id(_id: $id) { id } }",
+                  "variables": {"id": movieid}},
+            timeout=5,
+        )
+        return (response.json().get("data") or {}).get(
+            "movie_with_id") is not None
+    except (requests.RequestException, ValueError):
+        return None
 
 
 @app.route("/", methods=['GET'])
@@ -71,6 +90,12 @@ def create_movie(date, movieid):
     movie = collection.find_one({"date": date, "movies": movieid})
     if movie is not None:
         return make_response(jsonify({"error": "Movie already exist"}), 409)
+    exists = movie_exists(movieid)
+    if exists is None:
+        return make_response(
+            jsonify({"error": "movie service unavailable"}), 503)
+    if not exists:
+        return make_response(jsonify({"error": "Unknown movie"}), 404)
     collection.update_one(
         {"date": date},
         {"$addToSet": {"movies": movieid}},

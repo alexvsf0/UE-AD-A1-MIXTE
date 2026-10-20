@@ -1,12 +1,14 @@
 type Query {
    booking_with_id(_id: String!): Booking
+   bookings: [Booking!]
 }
 
 type Mutation {
-   delete_with_id(_id: String!): DeleteResult!
-   add_booking(userid: String!, date: String!, movieid: String!): DeleteResult!
-   delete_date_with_id(_id: String!, date: String!): DeleteResult!
-   delete_movie_with_id_and_date(_id: String!, date: String!, movie: String!): DeleteResult!
+   delete_with_id(_id: String!): MutationResult!
+   add_booking(userid: String!, date: String!, movieid: String!): MutationResult!
+   delete_date_with_id(_id: String!, date: String!): MutationResult!
+   delete_movie_with_id_and_date(_id: String!, date: String!, movie: String!): MutationResult!
+   delete_movie_everywhere(movie: String!): MutationResult!
 }
 
 
@@ -37,7 +39,7 @@ type Actor {
     films: [String!]
 }
 
-type DeleteResult {
+type MutationResult {
    success: Boolean!
    message: String!
 }

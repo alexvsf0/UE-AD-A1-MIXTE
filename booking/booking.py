@@ -1,13 +1,18 @@
 from ariadne import (graphql_sync, make_executable_schema,
                      load_schema_from_path, ObjectType, QueryType,
                      MutationType)
+import os
 from flask import Flask, request, jsonify, make_response
+from flask_jwt_extended import JWTManager, jwt_required
 
 import resolvers as r
 
 PORT = 3201
 HOST = '0.0.0.0'
 app = Flask(__name__)
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super-secret")
+jwt = JWTManager(app)
+app.config["JWT_TOKEN_LOCATION"] = ["headers"]
 
 # todo create elements for Ariadne
 type_defs = load_schema_from_path("booking.graphql")
@@ -16,12 +21,14 @@ mutation = MutationType()
 booking = ObjectType("Booking")
 date = ObjectType("Date")
 query.set_field('booking_with_id', r.booking_with_id)
+query.set_field('bookings', r.all_bookings)
 date.set_field("movies", r.resolve_date_movies)
 mutation.set_field('delete_with_id', r.delete_with_id)
 mutation.set_field('add_booking', r.add_booking)
 mutation.set_field('delete_date_with_id', r.delete_date_with_id)
 mutation.set_field('delete_movie_with_id_and_date',
                    r.delete_movie_with_id_and_date)
+mutation.set_field('delete_movie_everywhere', r.delete_movie_everywhere)
 schema = make_executable_schema(type_defs, booking, date, query, mutation)
 
 
@@ -32,8 +39,9 @@ def home():
         "<h1 style='color:blue'>Welcome to the Booking service!</h1>", 200)
 
 
-# graphQL entry points
+# graphQL entry points, un token est nécessaire pour accéder aux bookings
 @app.route('/graphql', methods=['POST'])
+@jwt_required()
 def graphql_server():
     data = request.get_json()
     success, result = graphql_sync(

@@ -1,13 +1,17 @@
 type Query {
     movie_with_id(_id: String!): Movie
+    movies: [Movie!]
+    movie_with_title(_title: String!): Movie
+    actor_with_id(_id: String!): Actor
+    actors: [Actor!]
 }
 
 type Mutation {
     update_movie_rate(_id: String!, _rate: Float!): Movie
-    delete_movie(_id: String!) : DeleteResult
-    add_movie(_id : String!, title: String!, director: String!, rating: Float!) : DeleteResult
-    add_actors(id : String!, firstname: String!, lastname: String!, birthyear: Int!, films: [String!]) : DeleteResult
-    delete_actor(_id: String!) : DeleteResult
+    delete_movie(_id: String!) : MutationResult
+    add_movie(_id : String!, title: String!, director: String!, rating: Float!) : MutationResult
+    add_actors(id : String!, firstname: String!, lastname: String!, birthyear: Int!, films: [String!]) : MutationResult
+    delete_actor(_id: String!) : MutationResult
 }
 
 type Movie {
@@ -27,7 +31,7 @@ type Actor {
 }
 
 
-type DeleteResult {
+type MutationResult {
    success: Boolean!
    message: String!
 }

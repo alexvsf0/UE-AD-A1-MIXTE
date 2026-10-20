@@ -2,8 +2,11 @@ import os
 import json
 # soucis avec requests alors que requeststs est bien dans les requirements.
 import requests
+from flask import request
+from flask_jwt_extended import get_jwt, get_jwt_identity
 
 SCHEDULE_URL = os.getenv("SCHEDULE_URL", "http://127.0.0.1:3202")
+USER_URL = os.getenv("USER_URL", "http://127.0.0.1:3203")
 MOVIE_GRAPHQL_URL = os.getenv(
     "MOVIE_GRAPHQL_URL", "http://127.0.0.1:3001/graphql")
 MOVIE_QUERY = """
@@ -25,19 +28,47 @@ query ($id: String!) {
 """
 
 
+FORBIDDEN = {"success": False, "message": "Accès refusé."}
+
+
+# Le token (vérifié dans booking.py) donne l'id et le statut admin
+def is_admin():
+    return get_jwt().get("admin", False)
+
+
+def can_access(userid):
+    return is_admin() or get_jwt_identity() == userid
+
+
+def auth_header():
+    # On transmet le token de l'appelant aux autres services
+    return {"Authorization": request.headers.get("Authorization", "")}
+
+
 # RESOLVEUR de la requête
 def booking_with_id(_, info, _id):
+    if not can_access(_id):
+        raise Exception("forbidden")
     with open("./data/bookings.json", "r") as file:
         bookings = json.load(file)["bookings"]
 
-        for booking in bookings:
-            if booking["userid"] == _id:
-                return booking
+    for booking in bookings:
+        if booking["userid"] == _id:
+            return booking
+    return None
 
-        raise Exception("User ID not found")
+
+def all_bookings(_, info):
+    # Liste de tous les bookings, réservé aux admins
+    if not is_admin():
+        raise Exception("forbidden")
+    with open("./data/bookings.json", "r") as file:
+        return json.load(file)["bookings"]
 
 
 def delete_with_id(_, info, _id):
+    if not can_access(_id):
+        return FORBIDDEN
     with open('{}/data/bookings.json'.format("."), "r") as file:
         bookings = json.load(file)
 
@@ -56,6 +87,8 @@ def delete_with_id(_, info, _id):
 
 
 def delete_date_with_id(_, info, _id, date):
+    if not can_access(_id):
+        return FORBIDDEN
     with open('{}/data/bookings.json'.format("."), "r") as file:
         bookings = json.load(file)
     indice_user = -1
@@ -82,6 +115,8 @@ def delete_date_with_id(_, info, _id, date):
 
 
 def delete_movie_with_id_and_date(_, info, _id, date, movie):
+    if not can_access(_id):
+        return FORBIDDEN
     with open('{}/data/bookings.json'.format("."), "r") as file:
         bookings = json.load(file)
     indice_user = -1
@@ -116,14 +151,43 @@ def delete_movie_with_id_and_date(_, info, _id, date, movie):
             "a été supprimé.".format(_id, date, movie)}
 
 
-# RESOLVER du type Date dans Booking
-def resolve_bookings_date(booking, info):
-    # dates est déjà dans booking donc :
-    return booking['dates']
+def delete_movie_everywhere(_, info, movie):
+    # Retire un film de tous les bookings (film supprimé du catalogue),
+    # réservé aux admins
+    if not is_admin():
+        return FORBIDDEN
+    path = "./data/bookings.json"
+    with open(path, "r") as file:
+        bookings = json.load(file)
+    removed = 0
+    for booking in bookings["bookings"]:
+        for entry in booking["dates"]:
+            before = len(entry["movies"])
+            entry["movies"] = [m for m in entry["movies"] if m != movie]
+            removed += before - len(entry["movies"])
+        # On ne garde pas les dates devenues vides
+        booking["dates"] = [d for d in booking["dates"] if d["movies"]]
+    with open(path, "w") as file:
+        json.dump(bookings, file, indent=2)
+    return {"success": True,
+            "message": f"Film {movie} retiré de {removed} booking(s)."}
 
 
 def add_booking(_, info, userid, date, movieid):
+    if not can_access(userid):
+        return FORBIDDEN
     path = "./data/bookings.json"
+
+    # L'utilisateur doit exister dans le service user
+    try:
+        response = requests.get(f"{USER_URL}/user/{userid}",
+                                headers=auth_header(), timeout=5)
+    except requests.RequestException:
+        return {"success": False, "message": "Service user injoignable."}
+    if response.status_code != 200:
+        return {"success": False,
+                "message": f"L'utilisateur {userid} n'existe pas."}
+
     try:
         response = requests.get(f"{SCHEDULE_URL}/dates/{date}", timeout=5)
     except requests.RequestException:

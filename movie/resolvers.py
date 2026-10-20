@@ -1,4 +1,49 @@
+import os
 import json
+import requests
+from flask import request
+from flask_jwt_extended import get_jwt
+
+SCHEDULE_URL = os.getenv("SCHEDULE_URL", "http://127.0.0.1:3202")
+BOOKING_GRAPHQL_URL = os.getenv(
+    "BOOKING_GRAPHQL_URL", "http://127.0.0.1:3201/graphql")
+FORBIDDEN = {"success": False, "message": "Accès refusé."}
+
+
+def is_admin():
+    # get_jwt() renvoie {} si aucun token n'a été fourni
+    return get_jwt().get("admin", False)
+
+
+def auth_header():
+    # On transmet le token de l'appelant aux autres services
+    return {"Authorization": request.headers.get("Authorization", "")}
+
+
+def all_movies(_, info):
+    with open('{}/data/movies.json'.format("."), "r") as file:
+        return json.load(file)['movies']
+
+
+def movie_with_title(_, info, _title):
+    with open('{}/data/movies.json'.format("."), "r") as file:
+        movies = json.load(file)
+    for movie in movies['movies']:
+        if movie['title'].lower() == _title.lower():
+            return movie
+
+
+def all_actors(_, info):
+    with open('{}/data/actors.json'.format("."), "r") as file:
+        return json.load(file)['actors']
+
+
+def actor_with_id(_, info, _id):
+    with open('{}/data/actors.json'.format("."), "r") as file:
+        actors = json.load(file)
+    for actor in actors['actors']:
+        if actor['id'] == _id:
+            return actor
 
 
 def movie_with_id(_, info, _id):
@@ -10,6 +55,8 @@ def movie_with_id(_, info, _id):
 
 
 def update_rate(_, info, _id, _rate):
+    if not is_admin():
+        raise Exception("forbidden")
     newmovie = None
     with open('{}/data/movies.json'.format("."), "r") as rfile:
         movies = json.load(rfile)
@@ -34,6 +81,8 @@ def resolve_actors_in_movie(movie, info):
 
 
 def add_movie(_, info, _id, title, director, rating):
+    if not is_admin():
+        return FORBIDDEN
     path = "./data/movies.json"
     with open(path, "r") as file:
         data = json.load(file)
@@ -54,6 +103,8 @@ def add_movie(_, info, _id, title, director, rating):
 
 
 def add_actors(_, info, id, firstname, lastname, birthyear, films):
+    if not is_admin():
+        return FORBIDDEN
     movies_path = "./data/movies.json"
     actors_path = "./data/actors.json"
     # films est optionnel dans le schéma
@@ -94,6 +145,8 @@ def add_actors(_, info, id, firstname, lastname, birthyear, films):
 
 
 def delete_movie(_, info, _id):
+    if not is_admin():
+        return FORBIDDEN
     movies_path = "./data/movies.json"
     actors_path = "./data/actors.json"
 
@@ -104,6 +157,29 @@ def delete_movie(_, info, _id):
     if not any(movie["id"] == _id for movie in movies_data["movies"]):
         return {"success": False,
                 "message": "Le film {} n'existe pas.".format(_id)}
+
+    # On retire d'abord le film du planning et des bookings ; si un service
+    # est injoignable, on ne supprime pas le film pour rester cohérent
+    try:
+        response = requests.delete(f"{SCHEDULE_URL}/movies/{_id}",
+                                   headers=auth_header(), timeout=5)
+        # 404 : le film n'était programmé à aucune date
+        if response.status_code not in (200, 404):
+            return {"success": False,
+                    "message": "Le service schedule a refusé la suppression."}
+        response = requests.post(
+            BOOKING_GRAPHQL_URL,
+            json={"query": "mutation ($m: String!) { "
+                  "delete_movie_everywhere(movie: $m) { success message } }",
+                  "variables": {"m": _id}},
+            headers=auth_header(), timeout=5)
+        result = response.json().get("data") or {}
+        if not (result.get("delete_movie_everywhere") or {}).get("success"):
+            return {"success": False,
+                    "message": "Le service booking a refusé la suppression."}
+    except (requests.RequestException, ValueError):
+        return {"success": False,
+                "message": "Service schedule ou booking injoignable."}
 
     # Supprimer le film de movies.json
     movies_data["movies"] = [
@@ -126,6 +202,8 @@ def delete_movie(_, info, _id):
 
 def delete_actor(_, info, _id):
     # Supprime un acteur
+    if not is_admin():
+        return FORBIDDEN
     actors_path = "./data/actors.json"
     with open(actors_path, "r") as file:
         actors_data = json.load(file)
