@@ -55,7 +55,6 @@ def get_dates_by_movieid(movieid):
     # On teste si movieid est dans la liste 'movies' et on récupère la date
     mylist = list(collection.find(
         {"movies": movieid},  {"_id": 0, "movies": 0}))
-    print(mylist)
     if mylist != []:
         res = make_response(jsonify(mylist), 200)
         return res
