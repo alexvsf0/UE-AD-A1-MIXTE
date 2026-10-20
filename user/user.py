@@ -31,10 +31,11 @@ def login():
         # On va créer un token avec le statut admin de l'utilisateur pour les
         # autres services qui n'ont pas accès à cette database
         additionnal_claim = {"admin": user["admin"]}
+        # L'identité du token est l'id (stable), pas le nom (modifiable)
         token = create_access_token(
-            identity=name, additional_claims=additionnal_claim)
+            identity=user["id"], additional_claims=additionnal_claim)
         return jsonify(access_token=token)
-    return (jsonify("fail"))
+    return (make_response(jsonify({"error": "missing name"}), 400))
 
 
 def write(users):
@@ -44,17 +45,10 @@ def write(users):
         json.dump(full, f)
 
 
-def is_admin(username):
-    user = [user for user in users if user["name"] == username]
+def is_admin(user_id):
+    user = [user for user in users if user["id"] == user_id]
     if user:
         return (user[0]["admin"])
-    return (False)
-
-
-def get_id(username):
-    user = [user for user in users if user["name"] == username]
-    if user:
-        return (user[0]["id"])
     return (False)
 
 
@@ -81,7 +75,7 @@ def get_user_id(user_id):
     # Renvoie les infos d'un utilisateur,
     # réservé à l'utilisateur ou aux admins
     current_user = get_jwt_identity()
-    if not (is_admin(current_user) or user_id == get_id(current_user)):
+    if not (is_admin(current_user) or user_id == current_user):
         return (make_response(jsonify({"error": "forbidden"}), 403))
     for user in users:
         if user_id == str(user["id"]):
@@ -96,10 +90,8 @@ def get_admin():
     current_user = get_jwt_identity()
     if not is_admin(current_user):
         return (make_response(jsonify({"error": "forbidden"}), 403))
-    for user in users:
-        rep = [user for user in users if user["admin"]]
-        return (make_response(jsonify(rep), 200))
-    return (make_response(jsonify({"error": "Not found"}), 404))
+    rep = [user for user in users if user["admin"]]
+    return (make_response(jsonify(rep), 200))
 
 
 @app.route("/user/<user_id>", methods=["POST"])
@@ -111,13 +103,20 @@ def create_user(user_id):
     for user in users:
         if user_id == str(user["id"]):
             return (make_response(
-                jsonify({"error": "user ID already exists"}), 500))
-    req = request.get_json()
+                jsonify({"error": "user ID already exists"}), 409))
+    req = request.get_json(silent=True)
+    if not req or "name" not in req:
+        return (make_response(jsonify({"error": "name is required"}), 400))
+    if any(user["name"] == req["name"] for user in users):
+        return (make_response(
+            jsonify({"error": "user name already exists"}), 409))
+    req["admin"] = bool(req.get("admin", False))
     if req["admin"] and not is_admin(current_user):
         return (make_response(jsonify({"error": "forbidden"}), 403))
+    req["id"] = user_id
     users.append(req)
     write(users)
-    return (make_response(jsonify(req), 200))
+    return (make_response(jsonify(req), 201))
 
 
 @app.route("/user/<user_id>", methods=["PUT"])
@@ -125,14 +124,19 @@ def create_user(user_id):
 def modify_user(user_id):
     # Modifie un compte, réservé à l'utilisateur ou aux admins
     current_user = get_jwt_identity()
+    if not (is_admin(current_user) or user_id == current_user):
+        return (make_response(jsonify({"error": "forbidden"}), 403))
     user_exist = False
-    req = request.get_json()
-    if req["admin"] and not is_admin(current_user):
+    req = request.get_json(silent=True)
+    if not req:
+        return (make_response(jsonify({"error": "missing body"}), 400))
+    if req.get("admin") and not is_admin(current_user):
         return (make_response(jsonify({"error": "forbidden"}), 403))
     for i in range(len(users)):
         if user_id == str(users[i]["id"]):
-            users[i] = req
-            users[i]["id"] = user_id
+            # On complète avec les anciennes valeurs pour ne rien perdre
+            users[i] = {**users[i], **req, "id": user_id}
+            req = users[i]
             user_exist = True
     if not user_exist:
         return (make_response(jsonify({"error": "user not found"}), 404))
@@ -151,7 +155,7 @@ def delete_user(user_id):
         if user_id == str(user["id"]):
             users.remove(user)
             write(users)
-            return (make_response("succesfully deleted"), 204)
+            return (make_response("", 204))
     return (make_response(jsonify({"error": "user not found"}), 404))
 
 
