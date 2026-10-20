@@ -12,10 +12,13 @@ query ($id: String!) {
         id
         title
         director
+        rating
         actors {
+            id
             firstname
             lastname
             birthyear
+            films
         }
     }
 }
