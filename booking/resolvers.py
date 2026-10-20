@@ -172,21 +172,10 @@ def delete_movie_everywhere(_, info, movie):
     return {"success": True,
             "message": f"Film {movie} retiré de {removed} booking(s)."}
 
-
 def add_booking(_, info, userid, date, movieid):
     if not can_access(userid):
         return FORBIDDEN
     path = "./data/bookings.json"
-
-    # L'utilisateur doit exister dans le service user
-    try:
-        response = requests.get(f"{USER_URL}/user/{userid}",
-                                headers=auth_header(), timeout=5)
-    except requests.RequestException:
-        return {"success": False, "message": "Service user injoignable."}
-    if response.status_code != 200:
-        return {"success": False,
-                "message": f"L'utilisateur {userid} n'existe pas."}
 
     try:
         response = requests.get(f"{SCHEDULE_URL}/dates/{date}", timeout=5)
@@ -225,7 +214,6 @@ def add_booking(_, info, userid, date, movieid):
     return {"success": True,
             "message": f"Le film {movieid} est réservé le {date} "
             f"pour {userid}."}
-
 
 # Liaison avec les données stockées par le service movie.
 def resolve_date_movies(date, info):
